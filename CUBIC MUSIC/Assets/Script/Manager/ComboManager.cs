@@ -11,6 +11,7 @@ public class ComboManager : MonoBehaviour
 
     Animator myAnim;
     string animComboUp = "ComboUp";
+    int maxCombo = 0;
 
     private void Start()
     {
@@ -22,14 +23,16 @@ public class ComboManager : MonoBehaviour
     {
         currentCombo += p_num;
         txtCombo.text = string.Format("{0:#,##0}", currentCombo);
+        if (maxCombo < currentCombo)
+            maxCombo = currentCombo;
 
         if(currentCombo > 2)
         {
             txtCombo.gameObject.SetActive(true);
             goComboImage.SetActive(true);
+            myAnim.SetTrigger(animComboUp);
         }
 
-        myAnim.SetTrigger(animComboUp);
     }
 
     public void ResetCombo()
@@ -43,5 +46,10 @@ public class ComboManager : MonoBehaviour
     public int GetCurretnCombo()
     {
         return currentCombo;
+    }
+
+    public int GetMaxCombo()
+    {
+        return maxCombo;
     }
 }

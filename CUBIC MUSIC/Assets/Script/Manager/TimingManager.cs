@@ -6,6 +6,8 @@ public class TimingManager : MonoBehaviour
 {
     public List<GameObject> boxNoteList = new List<GameObject>();
 
+    int[] judgementRecord = new int[5];
+
     [SerializeField] Transform Center = null;
     [SerializeField] RectTransform[] timingRect = null;
     Vector2[] timingBoxs = null;
@@ -13,6 +15,11 @@ public class TimingManager : MonoBehaviour
     EffectManager theEffect;
     ScoreManager theScoreManager;
     ComboManager theComboManager;
+    StageManager theStageManager;
+    PlayerController thePlayer;
+    StatusManager theStatus;
+    AudioManager theAudioManager;
+
 
     // Start is called before the first frame update
     void Start()
@@ -20,6 +27,10 @@ public class TimingManager : MonoBehaviour
         theEffect = FindObjectOfType<EffectManager>();
         theScoreManager = FindObjectOfType<ScoreManager>();
         theComboManager = FindObjectOfType<ComboManager>();
+        theStageManager = FindObjectOfType<StageManager>();
+        thePlayer= FindObjectOfType<PlayerController>();
+        theStatus = FindObjectOfType<StatusManager>();
+        theAudioManager = AudioManager.instance;
 
         // 타이밍 박스 설정
         timingBoxs = new Vector2[timingRect.Length];
@@ -29,7 +40,14 @@ public class TimingManager : MonoBehaviour
                 Center.localPosition.x + timingRect[i].rect.width / 2);
         }
     }
-
+    public void Initialized()
+    {
+        judgementRecord[0] = 0;
+        judgementRecord[1] = 0;
+        judgementRecord[2] = 0;
+        judgementRecord[3] = 0;
+        judgementRecord[4] = 0;
+    }
     public bool CheckTiming()
     {
         for(int i=0; i<boxNoteList.Count; i++)
@@ -46,9 +64,21 @@ public class TimingManager : MonoBehaviour
 
                     if(x<timingBoxs.Length - 1)
                         theEffect.NoteHitEffect();
-                    theEffect.JudgementEffect(x);
 
-                    theScoreManager.IncreaseScrore(x);
+                    if(CheckCanNextPlate())
+                    {
+                        theScoreManager.IncreaseScrore(x);
+                        theStageManager.ShowNextPlate();
+                        theEffect.JudgementEffect(x);
+                        judgementRecord[x]++;
+                        theStatus.CheckShield();
+                    }
+                    else
+                    {
+                        theEffect.JudgementEffect(5);
+                    }
+
+                    theAudioManager.PlaySFX("Clap");
 
                     return true;
                 }
@@ -57,6 +87,37 @@ public class TimingManager : MonoBehaviour
 
         theComboManager.ResetCombo();
         theEffect.JudgementEffect(timingBoxs.Length);
+        judgementRecord[4]++;
+        MissRecord();
         return false;
+    }
+
+    bool CheckCanNextPlate()
+    {
+        if(Physics.Raycast(thePlayer.destPos, Vector3.down, out RaycastHit t_hitInfo, 1.1f))
+        {
+            if(t_hitInfo.transform.CompareTag("BasicPlate"))
+            {
+                BasicPlate t_plate = t_hitInfo.transform.GetComponent<BasicPlate>();
+                if(t_plate.flag)
+                {
+                    t_plate.flag = false;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public int[] GetJudegementRecord()
+    {
+        return judgementRecord;
+    }
+
+    public void MissRecord()
+    {
+        theStatus.ResetShieldCombo();
+        judgementRecord[4]++;
     }
 }

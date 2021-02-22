@@ -25,6 +25,12 @@ public class ScoreManager : MonoBehaviour
         txtScore.text = "0";
     }
 
+    public void Initialized()
+    {
+        currentScore = 0;
+        txtScore.text = "0";
+    }
+
     public void IncreaseScrore(int p_JudgementState)
     {
         // 콤보 증가
@@ -41,5 +47,10 @@ public class ScoreManager : MonoBehaviour
         txtScore.text = string.Format("{0:#,##0}", currentScore);
 
         myAnim.SetTrigger(animScoreUp);
+    }
+
+    public int GetCurrentScore()
+    {
+        return currentScore;
     }
 }

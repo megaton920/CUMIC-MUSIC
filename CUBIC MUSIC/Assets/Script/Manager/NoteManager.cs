@@ -14,7 +14,6 @@ public class NoteManager : MonoBehaviour
     EffectManager theEffect;
     ComboManager theComboManager;
 
-
     private void Start()
     {
         theTimingManager = GetComponent<TimingManager>();
@@ -25,18 +24,21 @@ public class NoteManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        currentTime += Time.deltaTime;
-
-        if(currentTime >= 60d / bpm)
+        if(GameManager.instance.isStartGame)
         {
-            GameObject t_note = ObjectPool.instance.noteQueue.Dequeue();
-            t_note.transform.position = tfNoteAppear.position;
-            t_note.SetActive(true);
+            currentTime += Time.deltaTime;
 
-            //GameObject t_note = Instantiate(goNote, tfNoteAppear.position, Quaternion.identity);
-            //t_note.transform.SetParent(this.transform);
-            theTimingManager.boxNoteList.Add(t_note);
-            currentTime -= 60d / bpm;
+            if (currentTime >= 60d / bpm)
+            {
+                GameObject t_note = ObjectPool.instance.noteQueue.Dequeue();
+                t_note.transform.position = tfNoteAppear.position;
+                t_note.SetActive(true);
+
+                //GameObject t_note = Instantiate(goNote, tfNoteAppear.position, Quaternion.identity);
+                //t_note.transform.SetParent(this.transform);
+                theTimingManager.boxNoteList.Add(t_note);
+                currentTime -= 60d / bpm;
+            }
         }
     }
 
@@ -46,13 +48,26 @@ public class NoteManager : MonoBehaviour
         {
             if(collision.GetComponent<Note>().GetNoteFlag())
             {
+                theTimingManager.MissRecord();
                 theEffect.JudgementEffect(4);
                 theComboManager.ResetCombo();
             }
             theTimingManager.boxNoteList.Remove(collision.gameObject);
             ObjectPool.instance.noteQueue.Enqueue(collision.gameObject);
             collision.gameObject.SetActive(false);
-            //Destroy(collision.gameObject);
         }
+    }
+
+
+    public void RemoveNote()
+    {
+        GameManager.instance.isStartGame = false;
+        for(int i=0; i<theTimingManager.boxNoteList.Count; i++)
+        {
+            theTimingManager.boxNoteList[i].SetActive(false);
+            ObjectPool.instance.noteQueue.Enqueue(theTimingManager.boxNoteList[i]);
+        }
+
+        theTimingManager.boxNoteList.Clear();
     }
 }

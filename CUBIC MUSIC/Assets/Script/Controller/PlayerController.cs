@@ -1,13 +1,15 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    public static bool s_canPressKey = true;
 
     [SerializeField] float moveSpeed = 3;
     Vector3 dir = new Vector3();
-    Vector3 destPos = new Vector3();
+    public Vector3 destPos = new Vector3();
 
     [SerializeField] float spinSpeed = 270;
     Vector3 rotDir = new Vector3();
@@ -25,28 +27,76 @@ public class PlayerController : MonoBehaviour
 
     CameraController theCam;
 
+    bool isFalling = false;
+
+    Rigidbody myRigid;
+
+    Vector3 originPos = new Vector3();
+
+    StatusManager theStatus;
     private void Start()
     {
         theTimingManager = FindObjectOfType<TimingManager>();
         theCam = FindObjectOfType<CameraController>();
+        theStatus = FindObjectOfType<StatusManager>();
+        myRigid = GetComponentInChildren<Rigidbody>();
+        originPos = transform.position;
     }
+
+    public void Initialized()
+    {
+        transform.position = Vector3.zero;
+        destPos = Vector3.zero;
+        realCube.localPosition = Vector3.zero;
+        canMove = true;
+        s_canPressKey = true;
+        isFalling = false;
+        myRigid.useGravity = false;
+        myRigid.isKinematic = true;
+    }
+
 
     // Update is called once per frame
     void Update()
     {
-        if(Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.W))
+        if(GameManager.instance.isStartGame)
         {
-            if(canMove)
+            CheckFalling();
+
+            if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.W))
             {
-                if (theTimingManager.CheckTiming())
+                if (canMove && s_canPressKey && !isFalling)
                 {
-                    StartAction();
+                    Calc();
+                    if (theTimingManager.CheckTiming())
+                    {
+                        StartAction();
+                    }
                 }
+            }
+        }
+
+    }
+
+    private void CheckFalling()
+    {
+        if(!isFalling && canMove)
+        {
+            if (!Physics.Raycast(transform.position, Vector3.down, 1.1f))
+            {
+                Falling();
             }
         }
     }
 
-    void StartAction()
+    private void Falling()
+    {
+        isFalling = true;
+        myRigid.useGravity = true;
+        myRigid.isKinematic = false;
+    }
+
+    void Calc()
     {
         dir.Set(Input.GetAxisRaw("Vertical"), 0, Input.GetAxisRaw("Horizontal"));
 
@@ -55,7 +105,10 @@ public class PlayerController : MonoBehaviour
         rotDir = new Vector3(-dir.z, 0f, -dir.x);
         fakeCube.RotateAround(transform.position, rotDir, spinSpeed);
         destRot = fakeCube.rotation;
+    }
 
+    void StartAction()
+    {
         StartCoroutine(MoveCo());
         StartCoroutine(SpinCo());
         StartCoroutine(RecoilCo());
@@ -101,5 +154,25 @@ public class PlayerController : MonoBehaviour
         }
 
         realCube.localPosition = new Vector3(0, 0, 0);
+    }
+
+    public void ResetFalling()
+    {
+        theStatus.DecreaseHP(1);
+        AudioManager.instance.PlaySFX("Falling");
+
+        if(!theStatus.IsDead())
+        {
+            isFalling = false;
+            myRigid.useGravity = false;
+            myRigid.isKinematic = true;
+            transform.position = originPos;
+            realCube.localPosition = new Vector3(0, 0, 0);
+        }
+        else
+        {
+
+        }
+
     }
 }
